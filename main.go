@@ -18,18 +18,34 @@ var (
 	pooltime int
 )
 
-type server struct {
+type tunnel struct {
 	URL  string
 	Quit bool
 }
 
-func (s *server) KeepAlive() {
+func logToFile(msg string) {
+	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 066)
+	if err != nil {
+		log.Fatalf("Error writing log file: %s", err.Error())
+	} else {
+		log.SetOutput(f)
+		log.Println(msg)
+	}
+	defer f.Close()
+
+	log.SetOutput(os.Stdout)
+}
+
+// Keep send get request to see if tunnel is alive
+func (s *tunnel) KeepAlive() {
 	go func() {
 		log.Println("Pooling at URL: " + url + "/" + endpoint)
 		for {
 			r, err := http.Get(s.URL + "/" + endpoint)
 			if err != nil {
+				logToFile(err.Error())
 				log.Println(err.Error())
+				os.Exit(1)
 			} else {
 				defer r.Body.Close()
 				content, err := ioutil.ReadAll(r.Body)
@@ -37,7 +53,9 @@ func (s *server) KeepAlive() {
 					log.Println(err.Error())
 				} else {
 					if len(content) == 0 {
-						log.Println("Tunnel [" + url + "] is down")
+						msg := "Tunnel [" + url + "] is down"
+						logToFile(msg)
+						log.Println(msg)
 					} else {
 						log.Println(string(content))
 					}
@@ -48,32 +66,14 @@ func (s *server) KeepAlive() {
 	}()
 }
 
-func (s *server) Wait() {
-	for !s.Quit {
-		time.Sleep(time.Second * 10)
-	}
-}
-
-func (s *server) StartServer() {
-	go func() {
-		http.HandleFunc("/"+endpoint, func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(strconv.Itoa(int(time.Now().Unix()))))
-		})
-
-		log.Println("Serving at port " + port)
-
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			panic(err.Error())
-		}
-	}()
-}
-
+// Set default configurations
 func setDefaultConfig() {
-	port = "1302"
 	pooltime = 10
 	endpoint = "__ping"
+	url = ""
 }
 
+// Check for config file
 func checkIniConfig() {
 	if _, err := os.Stat("config.ini"); err != nil {
 		f, err := os.Create("config.ini")
@@ -82,7 +82,7 @@ func checkIniConfig() {
 			panic(err)
 		} else {
 			setDefaultConfig()
-			f.Write([]byte("[server]\nport=" + port + "\nendpoint=" + endpoint + "\npooltime=" + strconv.Itoa(pooltime)))
+			f.Write([]byte("[tunnel]\nendpoint=" + endpoint + "\nurl=\npooltime=" + strconv.Itoa(pooltime)))
 			f.Close()
 		}
 
@@ -92,9 +92,9 @@ func checkIniConfig() {
 			log.Println("Can't load config file. Error: ", err.Error())
 			setDefaultConfig()
 		} else {
-			port = cfg.Section("server").Key("port").String()
-			endpoint = cfg.Section("server").Key("endpoint").String()
-			v, err := cfg.Section("server").Key("pooltime").Int()
+			endpoint = cfg.Section("tunnel").Key("endpoint").String()
+			url = cfg.Section("tunnel").Key("url").String()
+			v, err := cfg.Section("tunnel").Key("pooltime").Int()
 			if err != nil {
 				pooltime = 10
 			} else {
@@ -103,18 +103,18 @@ func checkIniConfig() {
 		}
 	}
 
-	url = os.Getenv("KTA_URL")
 	if url == "" {
-		log.Println("Environment Variable 'KTA_URL' not founded")
+		log.Println("Set url in config.ini")
 		os.Exit(1)
 	}
 }
 
 func main() {
+	done := make(chan bool)
 	checkIniConfig()
 
-	s := server{URL: url}
-	s.StartServer()
+	s := tunnel{URL: url}
 	s.KeepAlive()
-	s.Wait()
+
+	<-done
 }

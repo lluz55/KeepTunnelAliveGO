@@ -1,3 +1,5 @@
 *.exe
 KTA
 KeepTunnelAliveGO
+*.ini
+*.txt
