@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/ini.v1"
@@ -45,7 +47,7 @@ func (s *tunnel) KeepAlive() {
 			if err != nil {
 				logToFile(err.Error())
 				log.Println(err.Error())
-				os.Exit(1)
+				os.Exit(3)
 			} else {
 				defer r.Body.Close()
 				content, err := ioutil.ReadAll(r.Body)
@@ -104,8 +106,24 @@ func checkIniConfig() {
 	}
 
 	if url == "" {
-		log.Println("Set url in config.ini")
-		os.Exit(1)
+		reader := bufio.NewReader(os.Stdin)
+		print("Insert URL to ping: ")
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		println(text)
+		text = strings.Replace(text, "\"", "", -1)
+		text = strings.Trim(text, "\"\"\"")
+		text = strings.Replace(text, "\n", "", -1)
+		url = text
+
+		cfg, err := ini.Load("config.ini")
+		if err == nil {
+			cfg.Section("tunnel").Key("url").SetValue(url)
+			cfg.SaveTo("config.ini")
+		}
 	}
 }
 
