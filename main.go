@@ -21,7 +21,7 @@ var (
 )
 
 func logToFile(msg string) {
-	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 066)
+	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0667)
 	if err != nil {
 		log.Fatalf("Error writing log file: %s", err.Error())
 	} else {
@@ -125,6 +125,8 @@ func checkIniConfig() {
 func main() {
 	done := make(chan bool)
 	checkIniConfig()
+
+	logToFile("Starting ...")
 
 	keepAlive()
 
