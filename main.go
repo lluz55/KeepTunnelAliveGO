@@ -33,7 +33,7 @@ func logToFile(msg string) {
 	log.SetOutput(os.Stdout)
 }
 
-// Keep send get request to see if tunnel is alive
+// Keep sending get request to see if tunnel is alive
 func keepAlive() {
 	go func() {
 		log.Println("Pooling at URL: " + url + "/" + endpoint)
@@ -108,7 +108,7 @@ func checkIniConfig() {
 			log.Println(err)
 			os.Exit(1)
 		}
-		println(text)
+		
 		text = strings.Replace(text, "\"", "", -1)
 		text = strings.Trim(text, "\"\"\"")
 		text = strings.Replace(text, "\n", "", -1)
