@@ -20,11 +20,6 @@ var (
 	pooltime int
 )
 
-type tunnel struct {
-	URL  string
-	Quit bool
-}
-
 func logToFile(msg string) {
 	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 066)
 	if err != nil {
@@ -39,11 +34,11 @@ func logToFile(msg string) {
 }
 
 // Keep send get request to see if tunnel is alive
-func (s *tunnel) KeepAlive() {
+func keepAlive() {
 	go func() {
 		log.Println("Pooling at URL: " + url + "/" + endpoint)
 		for {
-			r, err := http.Get(s.URL + "/" + endpoint)
+			r, err := http.Get(url + "/" + endpoint)
 			if err != nil {
 				logToFile(err.Error())
 				log.Println(err.Error())
@@ -131,8 +126,7 @@ func main() {
 	done := make(chan bool)
 	checkIniConfig()
 
-	s := tunnel{URL: url}
-	s.KeepAlive()
+	keepAlive()
 
 	<-done
 }
