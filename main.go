@@ -17,7 +17,7 @@ var (
 	port     string
 	endpoint string
 	url      string
-	pooltime int
+	pingtime int
 )
 
 func logToFile(msg string) {
@@ -36,7 +36,7 @@ func logToFile(msg string) {
 // Keep sending get request to see if tunnel is alive
 func keepAlive() {
 	go func() {
-		log.Println("Pooling at URL: " + url + "/" + endpoint)
+		log.Println("Ping to URL: " + url + "/" + endpoint)
 		for {
 			r, err := http.Get(url + "/" + endpoint)
 			if err != nil {
@@ -58,14 +58,14 @@ func keepAlive() {
 					}
 				}
 			}
-			time.Sleep(time.Minute * time.Duration(pooltime))
+			time.Sleep(time.Minute * time.Duration(pingtime))
 		}
 	}()
 }
 
 // Set default configurations
 func setDefaultConfig() {
-	pooltime = 10
+	pingtime = 10
 	endpoint = "__ping"
 	url = ""
 }
@@ -79,7 +79,7 @@ func checkIniConfig() {
 			panic(err)
 		} else {
 			setDefaultConfig()
-			f.Write([]byte("[tunnel]\nendpoint=" + endpoint + "\nurl=\npooltime=" + strconv.Itoa(pooltime)))
+			f.Write([]byte("[tunnel]\nendpoint=" + endpoint + "\nurl=\npingtime=" + strconv.Itoa(pingtime)))
 			f.Close()
 		}
 
@@ -91,11 +91,11 @@ func checkIniConfig() {
 		} else {
 			endpoint = cfg.Section("tunnel").Key("endpoint").String()
 			url = cfg.Section("tunnel").Key("url").String()
-			v, err := cfg.Section("tunnel").Key("pooltime").Int()
+			v, err := cfg.Section("tunnel").Key("pingtime").Int()
 			if err != nil {
-				pooltime = 10
+				pingtime = 10
 			} else {
-				pooltime = v
+				pingtime = v
 			}
 		}
 	}
