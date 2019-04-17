@@ -20,6 +20,17 @@ var (
 	pingtime int
 )
 
+func hasError(err error, msg string, toFile bool) bool {
+	if err != nil {
+		if toFile {
+			logToFile(msg + "  " + err.Error())
+		}
+		log.Println(msg + ": " + err.Error())
+		return true
+	}
+	return false
+}
+
 func logToFile(msg string) {
 	f, err := os.OpenFile("log.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0667)
 	if err != nil {
@@ -39,19 +50,13 @@ func keepAlive() {
 		log.Println("Ping to URL: " + url + "/" + endpoint)
 		for {
 			r, err := http.Get(url + "/" + endpoint)
-			if err != nil {
-				logToFile(err.Error())
-				log.Println(err.Error())
-				os.Exit(3)
-			} else {
+			if !hasError(err, "Error getting from tunnel", true) {
 				defer r.Body.Close()
 				content, err := ioutil.ReadAll(r.Body)
-				if err != nil {
-					log.Println(err.Error())
-				} else {
+				if !hasError(err, "Error reading from response body", false) {
 					if len(content) == 0 {
 						msg := "Tunnel [" + url + "] is down"
-						logToFile(msg)
+						logToFile("No content from response. " + msg)
 						log.Println(msg)
 					} else {
 						log.Println(string(content))
@@ -108,7 +113,7 @@ func checkIniConfig() {
 			log.Println(err)
 			os.Exit(1)
 		}
-		
+
 		text = strings.Replace(text, "\"", "", -1)
 		text = strings.Trim(text, "\"\"\"")
 		text = strings.Replace(text, "\n", "", -1)
