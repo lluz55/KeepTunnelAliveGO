@@ -1,4 +1,4 @@
-module KTA
+module KeepTunnelAliveGO
 
 go 1.12
 
